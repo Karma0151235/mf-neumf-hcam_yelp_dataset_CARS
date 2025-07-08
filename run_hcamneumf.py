@@ -14,10 +14,11 @@ from models.hcamneumf import HCAMNeuMF
 def load_encoded_context(encoded_path="data/context_latents.npy"):
     return np.load(encoded_path)
 
-def train_hcamneumf(model, train_data, val_data, epochs=20, batch_size=128, lr=0.001):
+def train_hcamneumf(train_data, val_data, num_users, num_items, context_dim, latent_dim_mf=16, latent_dim_mlp=32, mlp_layers=[64, 32, 16, 8], epochs=20, batch_size=128, lr=0.001):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
-    model = model.to(device)
+
+    model = HCAMNeuMF(num_users, num_items, context_dim, latent_dim_mf, latent_dim_mlp, mlp_layers).to(device)
     model.device = device
 
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
@@ -62,60 +63,67 @@ def train_hcamneumf(model, train_data, val_data, epochs=20, batch_size=128, lr=0
 
         print(f"Epoch {epoch + 1}, Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}")
 
-    return model, train_losses, val_losses
+    val_preds = np.array(val_preds)
+    val_targets = np.array(val_targets)
+    val_rmse = np.sqrt(np.mean((val_preds - val_targets) ** 2))
+    val_mae = np.mean(np.abs(val_preds - val_targets))
+    print(f"Final Val RMSE: {val_rmse:.4f}, Final Val MAE: {val_mae:.4f}")
 
-if __name__ == '__main__':
-    path_json_dir = 'datasets/'
-    raw_df = load_yelp(path_json_dir, sample_size=500000)
-    df, context_matrix = preprocess(raw_df, min_uc=3, min_ic=3)
-    context_latents = load_encoded_context()
+    return model, train_losses, val_losses, val_rmse, val_mae
+
+def run_hcamneumf(df, context_matrix, time_based=False):
+    encoded_context = np.load("data/context_latents.npy")
+    df['context'] = list(encoded_context)
 
     num_users = df['user'].nunique()
     num_items = df['item'].nunique()
-    context_dim = context_latents.shape[1]
+    context_dim = encoded_context.shape[1]
 
-    df['context'] = list(context_latents)
-    print(f"Dataset Size: {len(df)}, Users: {num_users}, Items: {num_items}, Context Dim: {context_dim}")
-
-    print("\n--- 10x Random 80/10/10 Splits ---")
     fold_rmse, fold_mae, fold_losses, fold_val_losses = [], [], [], []
-    for seed in range(10):
-        print(f"\n=== Split {seed + 1}/10 ===")
-        train_df, val_df, test_df = random_split_3way(df, seed)
 
-        def make_dataset(split_df):
-            users = torch.tensor(split_df['user'].values, dtype=torch.long)
-            items = torch.tensor(split_df['item'].values, dtype=torch.long)
-            contexts = torch.tensor(np.stack(split_df['context'].values), dtype=torch.float32)
-            ratings = torch.tensor(split_df['rating'].values, dtype=torch.float32)
-            return TensorDataset(users, items, contexts, ratings)
+    def make_dataset(split_df):
+        users = torch.tensor(split_df['user'].values, dtype=torch.long)
+        items = torch.tensor(split_df['item'].values, dtype=torch.long)
+        contexts = torch.tensor(np.stack(split_df['context'].values), dtype=torch.float32)
+        ratings = torch.tensor(split_df['rating'].values, dtype=torch.float32)
+        return TensorDataset(users, items, contexts, ratings)
+
+    if time_based:
+        print("\n--- Time-Based Split (80/20) ---")
+        train_df, test_df = split_time(df, ratio=0.8)
+        val_df = train_df.sample(frac=0.1, random_state=42).reset_index(drop=True)
+        train_df = train_df.drop(index=val_df.index).reset_index(drop=True)
 
         train_data = make_dataset(train_df)
         val_data = make_dataset(val_df)
         test_data = make_dataset(test_df)
 
-        model = HCAMNeuMF(
-            num_users, num_items, context_dim,
-            latent_dim_mf=16, latent_dim_mlp=32, mlp_layers=[64, 32, 16, 8]
-        )
+        model, train_losses, val_losses, val_rmse, val_mae = train_hcamneumf(train_data, val_data, num_users, num_items, context_dim)
+        rmse, mae = evaluate_model(model, test_df, context_tensor=torch.tensor(encoded_context[test_df.index], dtype=torch.float32))
 
-        model, train_losses, val_losses = train_hcamneumf(model, train_data, val_data)
+        print(f"Time-based Final Val RMSE: {val_rmse:.4f}, Final Val MAE: {val_mae:.4f}")
+        print(f"Time-based Test RMSE: {rmse:.4f}, MAE: {mae:.4f}")
 
-        model.eval()
-        test_preds, test_targets = [], []
-        with torch.no_grad():
-            for u, i, c, r in DataLoader(test_data, batch_size=128):
-                u, i, c, r = u.to(model.device), i.to(model.device), c.to(model.device), r.to(model.device)
-                pred = model(u, i, c).squeeze()
-                test_preds.extend(pred.view(-1).cpu().numpy())
-                test_targets.extend(r.view(-1).cpu().numpy())
+        return {
+            'rmse': rmse,
+            'mae': mae,
+            'train_losses': [train_losses],
+            'val_losses': [val_losses]
+        }
 
-        test_preds = np.array(test_preds)
-        test_targets = np.array(test_targets)
-        rmse = np.sqrt(np.mean((test_preds - test_targets) ** 2))
-        mae = np.mean(np.abs(test_preds - test_targets))
+    print("\n--- 10x Random 80/10/10 Splits ---")
+    for seed in range(10):
+        print(f"\n=== HCAM Split {seed + 1}/10 ===")
+        train_df, val_df, test_df = random_split_3way(df, seed)
 
-        print(f"Final Val RMSE: {rmse:.4f}, Final Val MAE: {mae:.4f}")
+        train_data = make_dataset(train_df)
+        val_data = make_dataset(val_df)
+        test_data = make_dataset(test_df)
+
+        model, train_losses, val_losses, val_rmse, val_mae = train_hcamneumf(train_data, val_data, num_users, num_items, context_dim)
+        rmse, mae = evaluate_model(model, test_df, context_tensor=torch.tensor(encoded_context[test_df.index], dtype=torch.float32))
+
+        print(f"Test RMSE: {rmse:.4f}, Test MAE: {mae:.4f}")
 
         fold_rmse.append(rmse)
         fold_mae.append(mae)
@@ -124,5 +132,17 @@ if __name__ == '__main__':
 
     print("\n=== Average Results over 10 Splits ===")
     print(f"Avg RMSE: {np.mean(fold_rmse):.4f}, Avg MAE: {np.mean(fold_mae):.4f}")
-    plot_fold_losses(fold_losses, title="HCAM-NeuMF Training Loss")
-    plot_train_vs_test(fold_losses, fold_val_losses, title="HCAM-NeuMF Train vs Validation Loss")
+
+    return {
+        'rmse': np.mean(fold_rmse),
+        'mae': np.mean(fold_mae),
+        'train_losses': fold_losses,
+        'val_losses': fold_val_losses
+    }
+
+if __name__ == '__main__':
+    path_json_dir = 'datasets/'
+    raw_df = load_yelp(path_json_dir, sample_size=500000)
+    df, context_matrix = preprocess(raw_df, min_uc=3, min_ic=3)
+    run_hcamneumf(df, context_matrix)
+    run_hcamneumf(df, context_matrix, time_based=True)
