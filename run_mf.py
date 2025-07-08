@@ -1,5 +1,3 @@
-# --- run_mf.py ---
-
 import torch
 import pandas as pd
 import numpy as np
@@ -11,7 +9,6 @@ from utils.splitter import random_split_3way, split_time
 from utils.evaluate import evaluate_model
 from utils.visualize import plot_fold_losses, plot_train_vs_test
 from models.mf import MF
-
 
 def train_mf(train_df, val_df, num_users, num_items, latent_dim=32, epochs=20, batch_size=128, lr=0.02):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -67,7 +64,6 @@ def train_mf(train_df, val_df, num_users, num_items, latent_dim=32, epochs=20, b
 
         print(f"Epoch {epoch + 1}, Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}")
 
-    # Final metrics
     val_preds = np.array(val_preds)
     val_targets = np.array(val_targets)
     val_rmse = np.sqrt(np.mean((val_preds - val_targets) ** 2))
@@ -90,41 +86,62 @@ def train_mf(train_df, val_df, num_users, num_items, latent_dim=32, epochs=20, b
     print(f"Final Val RMSE: {val_rmse:.4f}, Final Val MAE: {val_mae:.4f}")
     print(f"RMSE: {train_rmse:.4f}, MAE: {train_mae:.4f}")
 
-    return model, train_losses, val_losses
+    return model, train_losses, val_losses, val_rmse, val_mae
 
+def run_mf(df, time_based=False):
+    num_users = df['user'].nunique()
+    num_items = df['item'].nunique()
+
+    fold_rmse, fold_mae, fold_losses, fold_val_losses = [], [], [], []
+
+    if time_based:
+        print("\n--- Time-Based Split (80/20) ---")
+        train_df, test_df = split_time(df, ratio=0.8)
+        val_df = train_df.sample(frac=0.1, random_state=42).reset_index(drop=True)
+        train_df = train_df.drop(index=val_df.index).reset_index(drop=True)
+
+        model, train_losses, val_losses, val_rmse, val_mae = train_mf(train_df, val_df, num_users, num_items)
+        rmse, mae = evaluate_model(model, test_df)
+
+        print(f"Time-based Final Val RMSE: {val_rmse:.4f}, Final Val MAE: {val_mae:.4f}")
+        print(f"Time-based Test RMSE: {rmse:.4f}, MAE: {mae:.4f}")
+
+        return {
+            'rmse': rmse,
+            'mae': mae,
+            'train_losses': [train_losses],
+            'val_losses': [val_losses]
+        }
+
+    else:
+        print("\n--- 10x Random 80/10/10 Splits ---")
+        for seed in range(10):
+            print(f"\n=== Split {seed + 1}/10 ===")
+            train_df, val_df, test_df = random_split_3way(df, seed)
+            model, train_losses, val_losses, val_rmse, val_mae = train_mf(train_df, val_df, num_users, num_items)
+            rmse, mae = evaluate_model(model, test_df)
+
+            print(f"Test RMSE: {rmse:.4f}, Test MAE: {mae:.4f}")
+
+            fold_rmse.append(rmse)
+            fold_mae.append(mae)
+            fold_losses.append(train_losses)
+            fold_val_losses.append(val_losses)
+
+        print("\n=== Average Results over 10 Splits ===")
+        print(f"Avg RMSE: {np.mean(fold_rmse):.4f}, Avg MAE: {np.mean(fold_mae):.4f}")
+
+        return {
+            'rmse': np.mean(fold_rmse),
+            'mae': np.mean(fold_mae),
+            'train_losses': fold_losses,
+            'val_losses': fold_val_losses
+        }
 
 if __name__ == '__main__':
     path_json_dir = 'datasets/'
     raw_df = load_yelp(path_json_dir, sample_size=500000)
     df, _ = preprocess(raw_df, min_uc=3, min_ic=3)
 
-    num_users = df['user'].nunique()
-    num_items = df['item'].nunique()
-    print(f"Dataset Size: {len(df)}, Users: {num_users}, Items: {num_items}")
-
-    print("\n--- 10x Random 80/10/10 Splits ---")
-    fold_rmse, fold_mae, fold_losses, fold_val_losses = [], [], [], []
-    for seed in range(10):
-        print(f"\n=== Split {seed + 1}/10 ===")
-        train_df, val_df, test_df = random_split_3way(df, seed)
-        model, train_losses, val_losses = train_mf(train_df, val_df, num_users, num_items)
-        rmse, mae = evaluate_model(model, test_df)
-        fold_rmse.append(rmse)
-        fold_mae.append(mae)
-        fold_losses.append(train_losses)
-        fold_val_losses.append(val_losses)
-
-    print("\n=== Average Results over 10 Splits ===")
-    print(f"Avg RMSE: {np.mean(fold_rmse):.4f}, Avg MAE: {np.mean(fold_mae):.4f}")
-
-    plot_fold_losses(fold_losses, title="MF Training Loss")
-    plot_train_vs_test(fold_losses, fold_val_losses, title="MF Train vs Validation Loss")
-
-    print("\n--- Time-Based Split (80/20) ---")
-    train_df, test_df = split_time(df, ratio=0.8)
-    val_df = train_df.sample(frac=0.1, random_state=42).reset_index(drop=True)
-    train_df = train_df.drop(index=val_df.index).reset_index(drop=True)
-
-    model, _, _ = train_mf(train_df, val_df, num_users, num_items)
-    rmse, mae = evaluate_model(model, test_df)
-    print(f"Time-based Split Results — RMSE: {rmse:.4f}, MAE: {mae:.4f}")
+    run_mf(df)
+    run_mf(df, time_based=True)
