@@ -1,24 +1,29 @@
 import torch
 import pandas as pd
 import numpy as np
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
 from utils.data_loader import load_yelp, preprocess
 from utils.splitter import random_split_3way, split_time
 from utils.evaluate import evaluate_model
-from utils.visualize import plot_fold_losses, plot_train_vs_test
+from utils.visualize import plot_train_vs_test
 from utils.autoencoder import Autoencoder
 from models.hcamneumf import HCAMNeuMF
+
+import warnings
+warnings.filterwarnings('ignore')
+print("This Script Ignores All Warnings")
 
 def load_encoded_context(encoded_path="data/context_latents.npy"):
     return np.load(encoded_path)
 
-def train_hcamneumf(train_data, val_data, num_users, num_items, context_dim, latent_dim_mf=16, latent_dim_mlp=32, mlp_layers=[64, 32, 16, 8], epochs=20, batch_size=128, lr=0.001):
+def train_hcamneumf(train_data, val_data, num_users, num_items, context_dim, latent_dim_mf=16, latent_dim_mlp=32, mlp_layers=[64, 32, 16, 8], dropout=0.4, epochs=10, batch_size=128, lr=0.001):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
-    model = HCAMNeuMF(num_users, num_items, context_dim, latent_dim_mf, latent_dim_mlp, mlp_layers).to(device)
+    model = HCAMNeuMF(num_users, num_items, context_dim, latent_dim_mf, latent_dim_mlp, mlp_layers, dropout).to(device)
     model.device = device
 
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
@@ -35,7 +40,7 @@ def train_hcamneumf(train_data, val_data, num_users, num_items, context_dim, lat
         total_loss = 0
         for u, i, c, r in train_loader:
             u, i, c, r = u.to(device), i.to(device), c.to(device), r.to(device)
-            pred = model(u, i, c).squeeze()
+            pred = model(u, i, c).view(-1)
             loss = loss_fn(pred, r)
             optimizer.zero_grad()
             loss.backward()
@@ -46,30 +51,33 @@ def train_hcamneumf(train_data, val_data, num_users, num_items, context_dim, lat
         train_losses.append(avg_train_loss)
 
         model.eval()
-        val_loss = 0
         val_preds, val_targets = [], []
+        val_loss = 0
         with torch.no_grad():
             for u, i, c, r in val_loader:
                 u, i, c, r = u.to(device), i.to(device), c.to(device), r.to(device)
-                pred = model(u, i, c).squeeze()
-                pred = pred.view(-1).cpu().numpy()
-                r = r.view(-1).cpu().numpy()
-                val_preds.extend(pred)
-                val_targets.extend(r)
-                val_loss += loss_fn(torch.tensor(pred), torch.tensor(r)).item()
-
+                pred = model(u, i, c).view(-1)
+                val_preds.extend(pred.cpu().numpy())
+                val_targets.extend(r.cpu().numpy())
+                val_loss += loss_fn(pred, r).item()
         avg_val_loss = val_loss / len(val_loader)
         val_losses.append(avg_val_loss)
 
-        print(f"Epoch {epoch + 1}, Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}")
+        # Train metrics
+        train_preds, train_targets = [], []
+        with torch.no_grad():
+            for u, i, c, r in train_loader:
+                u, i, c, r = u.to(device), i.to(device), c.to(device), r.to(device)
+                pred = model(u, i, c).view(-1)
+                train_preds.extend(pred.cpu().numpy())
+                train_targets.extend(r.cpu().numpy())
 
-    val_preds = np.array(val_preds)
-    val_targets = np.array(val_targets)
-    val_rmse = np.sqrt(np.mean((val_preds - val_targets) ** 2))
-    val_mae = np.mean(np.abs(val_preds - val_targets))
-    print(f"Final Val RMSE: {val_rmse:.4f}, Final Val MAE: {val_mae:.4f}")
+        train_mae = mean_absolute_error(train_targets, train_preds)
+        val_mae = mean_absolute_error(val_targets, val_preds)
 
-    return model, train_losses, val_losses, val_rmse, val_mae
+        print(f"Epoch {epoch + 1}: Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}, Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
+
+    return model, train_losses, val_losses
 
 def run_hcamneumf(df, context_matrix, time_based=False):
     encoded_context = np.load("data/context_latents.npy")
@@ -98,12 +106,10 @@ def run_hcamneumf(df, context_matrix, time_based=False):
         val_data = make_dataset(val_df)
         test_data = make_dataset(test_df)
 
-        model, train_losses, val_losses, val_rmse, val_mae = train_hcamneumf(train_data, val_data, num_users, num_items, context_dim)
+        model, train_losses, val_losses = train_hcamneumf(train_data, val_data, num_users, num_items, context_dim)
         rmse, mae = evaluate_model(model, test_df, context_tensor=torch.tensor(encoded_context[test_df.index], dtype=torch.float32))
 
-        print(f"Time-based Final Val RMSE: {val_rmse:.4f}, Final Val MAE: {val_mae:.4f}")
-        print(f"Time-based Test RMSE: {rmse:.4f}, MAE: {mae:.4f}")
-
+        print(f"Test MAE: {mae:.4f}, Test RMSE: {rmse:.4f}")
         return {
             'rmse': rmse,
             'mae': mae,
@@ -120,10 +126,24 @@ def run_hcamneumf(df, context_matrix, time_based=False):
         val_data = make_dataset(val_df)
         test_data = make_dataset(test_df)
 
-        model, train_losses, val_losses, val_rmse, val_mae = train_hcamneumf(train_data, val_data, num_users, num_items, context_dim)
+        model, train_losses, val_losses = train_hcamneumf(train_data, val_data, num_users, num_items, context_dim)
         rmse, mae = evaluate_model(model, test_df, context_tensor=torch.tensor(encoded_context[test_df.index], dtype=torch.float32))
 
-        print(f"Test RMSE: {rmse:.4f}, Test MAE: {mae:.4f}")
+        # Train metrics
+        train_preds, train_targets = [], []
+        train_loader = DataLoader(train_data, batch_size=128)
+        with torch.no_grad():
+            for u, i, c, r in train_loader:
+                u, i, c = u.to(model.device), i.to(model.device), c.to(model.device)
+                pred = model(u, i, c).view(-1)
+                train_preds.extend(pred.cpu().numpy())
+                train_targets.extend(r.numpy())
+
+        train_mae = mean_absolute_error(train_targets, train_preds)
+        train_rmse = mean_squared_error(train_targets, train_preds, squared=False)
+
+        print(f"Train MAE: {train_mae:.4f}, Train RMSE: {train_rmse:.4f}")
+        print(f"Test MAE: {mae:.4f}, Test RMSE: {rmse:.4f}")
 
         fold_rmse.append(rmse)
         fold_mae.append(mae)
@@ -144,5 +164,9 @@ if __name__ == '__main__':
     path_json_dir = 'datasets/'
     raw_df = load_yelp(path_json_dir, sample_size=500000)
     df, context_matrix = preprocess(raw_df, min_uc=3, min_ic=3)
-    run_hcamneumf(df, context_matrix)
-    run_hcamneumf(df, context_matrix, time_based=True)
+
+    hcam_results = run_hcamneumf(df, context_matrix)
+    plot_train_vs_test(hcam_results['train_losses'], hcam_results['val_losses'], "HCAM-NeuMF Train vs Val Loss (10-fold)")
+
+    hcam_tb_results = run_hcamneumf(df, context_matrix, time_based=True)
+    plot_train_vs_test(hcam_tb_results['train_losses'], hcam_tb_results['val_losses'], "HCAM-NeuMF Train vs Val Loss (Time-Based)")
