@@ -56,24 +56,15 @@ def plot_model_comparison_metrics(rmse_list, mae_list, labels):
     plt.show()
 
 
-def plot_latent_space_3d(context_latents):
-    pca = PCA(n_components=3)
-    reduced = pca.fit_transform(context_latents)
-    fig = plt.figure(figsize=(8, 6))
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(reduced[:, 0], reduced[:, 1], reduced[:, 2], s=5)
-    ax.set_title("Context Latent Space (3D PCA)")
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_ahc_dendrogram(context_latents):
-    linkage_matrix = linkage(context_latents, method='ward')
-    plt.figure(figsize=(12, 6))
-    dendrogram(linkage_matrix, truncate_mode='lastp', p=30, leaf_rotation=90., leaf_font_size=10., show_contracted=True)
-    plt.title("AHC Dendrogram (Ward’s Method)")
-    plt.xlabel("Context Points")
-    plt.ylabel("Distance")
+def plot_train_vs_val_mae(train_maes, val_maes, title="Train vs Validation MAE per Fold"):
+    plt.figure(figsize=(10, 6))
+    for idx, (train, val) in enumerate(zip(train_maes, val_maes)):
+        plt.plot(train, label=f"Fold {idx+1} - Train MAE")
+        plt.plot(val, label=f"Fold {idx+1} - Val MAE", linestyle='--')
+    plt.xlabel("Epoch")
+    plt.ylabel("MAE")
+    plt.title(title)
+    plt.legend()
     plt.tight_layout()
     plt.show()
 
