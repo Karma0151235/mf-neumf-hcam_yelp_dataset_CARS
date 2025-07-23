@@ -10,7 +10,6 @@ from utils.evaluate import evaluate_model
 from utils.visualize import (
     plot_fold_losses, plot_train_vs_test,
     plot_model_comparison_losses, plot_model_comparison_metrics,
-    plot_latent_space_3d, plot_ahc_dendrogram,
     plot_val_vs_test_metrics, plot_train_vs_val_mae  # Include new function
 )
 from utils.autoencoder import Autoencoder
