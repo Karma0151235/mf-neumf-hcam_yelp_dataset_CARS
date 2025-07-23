@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')  # Suppress all warnings
 warnings.warn("This warning will be hidden")
 print("This Script Ignores All Warnings")
 
-def train_mf(train_df, val_df, num_users, num_items, latent_dim=32, epochs=20, batch_size=128, lr=0.02):
+def train_mf(train_df, val_df, num_users, num_items, latent_dim=8, epochs=10, batch_size=95, lr=0.01863032884378607):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
@@ -37,6 +37,7 @@ def train_mf(train_df, val_df, num_users, num_items, latent_dim=32, epochs=20, b
     loss_fn = nn.MSELoss()
 
     train_losses, val_losses = [], []
+    train_maes, val_maes = [], []
 
     for epoch in range(epochs):
         model.train()
@@ -66,6 +67,7 @@ def train_mf(train_df, val_df, num_users, num_items, latent_dim=32, epochs=20, b
 
         val_rmse = mean_squared_error(val_targets, val_preds, squared=False)
         val_mae = mean_absolute_error(val_targets, val_preds)
+        val_maes.append(val_mae)
 
         # Also compute train metrics
         train_preds, train_targets = [], []
@@ -77,16 +79,18 @@ def train_mf(train_df, val_df, num_users, num_items, latent_dim=32, epochs=20, b
                 train_targets.extend(r.cpu().numpy())
         train_rmse = mean_squared_error(train_targets, train_preds, squared=False)
         train_mae = mean_absolute_error(train_targets, train_preds)
+        train_maes.append(train_mae)
 
         print(f"Epoch {epoch+1}: Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}, Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
 
-    return model, train_losses, val_losses
+    return model, train_losses, val_losses, train_maes, val_maes
 
 def run_mf(df, time_based=False):
     num_users = df['user'].nunique()
     num_items = df['item'].nunique()
 
     fold_rmse, fold_mae, fold_losses, fold_val_losses = [], [], [], []
+    fold_train_maes, fold_val_maes = [], []
 
     if time_based:
         print("\n--- Time-Based Split (80/20) ---")
@@ -94,7 +98,7 @@ def run_mf(df, time_based=False):
         val_df = train_df.sample(frac=0.1, random_state=42).reset_index(drop=True)
         train_df = train_df.drop(index=val_df.index).reset_index(drop=True)
 
-        model, train_losses, val_losses = train_mf(train_df, val_df, num_users, num_items)
+        model, train_losses, val_losses, train_maes, val_maes = train_mf(train_df, val_df, num_users, num_items)
         rmse, mae = evaluate_model(model, test_df)
 
         # Train set metrics
@@ -119,7 +123,9 @@ def run_mf(df, time_based=False):
             'rmse': rmse,
             'mae': mae,
             'train_losses': [train_losses],
-            'val_losses': [val_losses]
+            'val_losses': [val_losses],
+            'train_maes': [train_maes],
+            'val_maes': [val_maes]
         }
 
     else:
@@ -127,7 +133,7 @@ def run_mf(df, time_based=False):
         for seed in range(10):
             print(f"\n=== Split {seed + 1}/10 ===")
             train_df, val_df, test_df = random_split_3way(df, seed)
-            model, train_losses, val_losses = train_mf(train_df, val_df, num_users, num_items)
+            model, train_losses, val_losses, train_maes, val_maes = train_mf(train_df, val_df, num_users, num_items)
             rmse, mae = evaluate_model(model, test_df)
 
             # Train set metrics
@@ -152,6 +158,8 @@ def run_mf(df, time_based=False):
             fold_mae.append(mae)
             fold_losses.append(train_losses)
             fold_val_losses.append(val_losses)
+            fold_train_maes.append(train_maes)
+            fold_val_maes.append(val_maes)
 
         print("\n=== Average Results over 10 Splits ===")
         print(f"Avg RMSE: {np.mean(fold_rmse):.4f}, Avg MAE: {np.mean(fold_mae):.4f}")
@@ -160,21 +168,17 @@ def run_mf(df, time_based=False):
             'rmse': np.mean(fold_rmse),
             'mae': np.mean(fold_mae),
             'train_losses': fold_losses,
-            'val_losses': fold_val_losses
+            'val_losses': fold_val_losses,
+            'train_maes': fold_train_maes,
+            'val_maes': fold_val_maes
         }
-
 
 if __name__ == '__main__':
     path_json_dir = 'datasets/'
     raw_df = load_yelp(path_json_dir, sample_size=500000)
-    df, _ = preprocess(raw_df, min_uc=2, min_ic=2)
+    df, _ = preprocess(raw_df, min_uc=3, min_ic=3)
 
     mf_tb_results = run_mf(df, time_based=True)
     plot_train_vs_test(mf_tb_results['train_losses'], mf_tb_results['val_losses'], "MF Train vs Val Loss (Time-Based)")
     mf_results = run_mf(df)
     plot_train_vs_test(mf_results['train_losses'], mf_results['val_losses'], "MF Train vs Val Loss (10-fold)")
-
-
-
-
-
