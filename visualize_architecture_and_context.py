@@ -32,7 +32,7 @@ def plot_latent_space_3d(context_latents):
     plt.show()
 
 
-def plot_ahc_dendrogram(context_latents, sample_size=1000):
+def plot_ahc_dendrogram(context_latents, sample_size=10000):
     if context_latents.shape[0] > sample_size:
         idx = np.random.choice(context_latents.shape[0], sample_size, replace=False)
         context_latents = context_latents[idx]
@@ -86,13 +86,13 @@ if __name__ == "__main__":
 
     print("Rendering model architectures to /figures...")
 
-    mf_model = MF(num_users, num_items, latent_dim=32)
+    mf_model = MF(num_users, num_items, latent_dim=8)
     visualize_model_architecture(mf_model, (user, item), title="MF_Architecture")
 
-    neumf_model = NeuMF(num_users, num_items, latent_dim_mf=16, latent_dim_mlp=16, mlp_layers=[32, 16, 8], dropout=0.5)
+    neumf_model = NeuMF(num_users, num_items, latent_dim_mf=16, latent_dim_mlp=16, mlp_layers=[32, 16, 8], dropout=0.31778351694762974)
     visualize_model_architecture(neumf_model, (user, item), title="NeuMF_Architecture")
 
-    hcam_model = HCAMNeuMF(num_users, num_items, context_dim=context_dim, latent_dim_mf=16, latent_dim_mlp=16, mlp_layers=[32, 16, 8], dropout=0.5)
+    hcam_model = HCAMNeuMF(num_users, num_items, context_dim=context_dim, latent_dim_mf=16, latent_dim_mlp=16, mlp_layers=[32, 16, 8], dropout=0.2)
     visualize_model_architecture(hcam_model, (user, item, context), title="HCAMNeuMF_Architecture")
 
     visualize_model_architecture_svg(mf_model, (user, item), title="MF_ArchitectureSVG")
