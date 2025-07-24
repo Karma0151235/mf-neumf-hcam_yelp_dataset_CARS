@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 print("This Script Ignores All Warnings")
 
 
-def train_hcamneumf(train_data, val_data, num_users, num_items, context_dim, latent_dim_mf=128, latent_dim_mlp=128, mlp_layers=[256, 128, 64, 32, 16, 8], dropout=0.3483810504472348, epochs=10, batch_size=128, lr=0.0001):
+def train_hcamneumf(train_data, val_data, num_users, num_items, context_dim, latent_dim_mf=16, latent_dim_mlp=16, mlp_layers=[32, 16, 8],dropout=0.2, epochs=7, batch_size=128, lr=0.0003):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
@@ -78,14 +78,14 @@ def train_hcamneumf(train_data, val_data, num_users, num_items, context_dim, lat
     return model, train_losses, val_losses, train_maes, val_maes
 
 
-def run_hcamneumf(df, context_matrix, time_based=False):
+def run_hcamneumf(df, structured_context, time_based=False):
     df = df.reset_index(drop=True)
-    context_matrix = np.array(context_matrix, dtype=np.float32)  # <--- ensure valid format
-    df['context'] = list(context_matrix)
+    structured_context = np.array(structured_context, dtype=np.float32)
+    df['context'] = list(structured_context)
 
     num_users = df['user'].nunique()
     num_items = df['item'].nunique()
-    context_dim = context_matrix.shape[1]
+    context_dim = structured_context.shape[1]
 
     def make_dataset(split_df):
         users = torch.tensor(split_df['user'].values, dtype=torch.long)
@@ -114,6 +114,7 @@ def run_hcamneumf(df, context_matrix, time_based=False):
         context_test = torch.tensor(np.stack(test_df['context'].values), dtype=torch.float32)
         rmse, mae = evaluate_model(model, test_df, context_tensor=context_test)
 
+        # Compute training final MAE and RMSE
         train_loader = DataLoader(train_data, batch_size=128)
         train_preds, train_targets = [], []
         with torch.no_grad():
@@ -122,7 +123,6 @@ def run_hcamneumf(df, context_matrix, time_based=False):
                 pred = model(u, i, c).view(-1)
                 train_preds.extend(pred.cpu().numpy())
                 train_targets.extend(r.numpy())
-
         train_mae_final = mean_absolute_error(train_targets, train_preds)
         train_rmse = mean_squared_error(train_targets, train_preds, squared=False)
 
@@ -153,6 +153,7 @@ def run_hcamneumf(df, context_matrix, time_based=False):
         context_test = torch.tensor(np.stack(test_df['context'].values), dtype=torch.float32)
         rmse, mae = evaluate_model(model, test_df, context_tensor=context_test)
 
+        # Compute training final MAE and RMSE
         train_loader = DataLoader(train_data, batch_size=128)
         train_preds, train_targets = [], []
         with torch.no_grad():
@@ -161,7 +162,6 @@ def run_hcamneumf(df, context_matrix, time_based=False):
                 pred = model(u, i, c).view(-1)
                 train_preds.extend(pred.cpu().numpy())
                 train_targets.extend(r.numpy())
-
         train_mae_final = mean_absolute_error(train_targets, train_preds)
         train_rmse = mean_squared_error(train_targets, train_preds, squared=False)
 
@@ -191,10 +191,14 @@ def run_hcamneumf(df, context_matrix, time_based=False):
 if __name__ == '__main__':
     path_json_dir = 'datasets/'
     raw_df = load_yelp(path_json_dir, sample_size=500000)
-    df, context_matrix = preprocess(raw_df, min_uc=3, min_ic=3)
+    df, _ = preprocess(raw_df, min_uc=3, min_ic=3)
 
-    hcam_tb_results = run_hcamneumf(df, context_matrix, time_based=True)
-    plot_train_vs_test(hcam_tb_results['train_losses'], hcam_tb_results['val_losses'], "HCAM-NeuMF Train vs Val Loss (Time-Based)")
+    structured_context = np.load("data/structured_context.npy")
 
-    hcam_results = run_hcamneumf(df, context_matrix)
-    plot_train_vs_test(hcam_results['train_losses'], hcam_results['val_losses'], "HCAM-NeuMF Train vs Val Loss (10-fold)")
+    hcam_tb_results = run_hcamneumf(df, structured_context, time_based=True)
+    plot_train_vs_test(hcam_tb_results['train_losses'], hcam_tb_results['val_losses'],
+                       "HCAM-NeuMF Train vs Val Loss (Time-Based)")
+
+    hcam_results = run_hcamneumf(df, structured_context)
+    plot_train_vs_test(hcam_results['train_losses'], hcam_results['val_losses'],
+                       "HCAM-NeuMF Train vs Val Loss (10-fold)")
