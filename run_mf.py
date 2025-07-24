@@ -1,21 +1,22 @@
+import warnings
+
+import numpy as np
 import torch
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-import numpy as np
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
-from utils.data_loader import load_yelp, preprocess
-from utils.splitter import random_split_3way, split_time
-from utils.evaluate import evaluate_model
-from utils.visualize import plot_fold_losses, plot_train_vs_test
 from models.mf import MF
+from utils.data_loader import load_yelp, preprocess
+from utils.evaluate import evaluate_model
+from utils.splitter import random_split_3way, split_time
+from utils.visualize import plot_train_vs_test
 
-import warnings
 warnings.filterwarnings('ignore')  # Suppress all warnings
 warnings.warn("This warning will be hidden")
 print("This Script Ignores All Warnings")
 
-def train_mf(train_df, val_df, num_users, num_items, latent_dim=8, epochs=10, batch_size=95, lr=0.01863032884378607):
+def train_mf(train_df, val_df, num_users, num_items, latent_dim=8, epochs=7, batch_size=128, lr=0.05):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
