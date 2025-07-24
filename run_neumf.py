@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore')
 print("This Script Ignores All Warnings")
 
 
-def train_neumf(train_df, val_df, num_users, num_items, latent_dim_mf=64, latent_dim_mlp=64, mlp_layers=[128, 64, 32, 16, 8], dropout=0.31778351694762974, epochs=10, batch_size=128, lr=0.00043885100849082396):
+def train_neumf(train_df, val_df, num_users, num_items, latent_dim_mf=16, latent_dim_mlp=16, mlp_layers=[32, 16, 8], dropout=0.31778351694762974, epochs=7, batch_size=128, lr=0.00043885100849082396):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
