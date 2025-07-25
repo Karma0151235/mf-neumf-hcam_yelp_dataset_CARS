@@ -47,6 +47,7 @@ This repository contains the full implementation of a recommendation system benc
 
 ### 3. Data Preparation
    a. Download the [Yelp dataset files](https://www.kaggle.com/datasets/yelp-dataset/yelp-dataset) (business.json, review.json, etc.) into the datasets/ directory. <br>
+   
    b. Important: Ensure that _all_ scripts reference the dataset path.
 <br>
 
