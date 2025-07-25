@@ -93,6 +93,8 @@ This repository contains the full implementation of a recommendation system benc
 Bayesian Optimization using `scikit-optimize` was used to fine-tune hyperparameters (latent dimensions, learning rate, dropout). <br>
 Due to time and compute constraints, not all hyperparameters (e.g. number of layers, batch size) were included in the search space. Some models were also manually tuned for practical performance.
 <br>
+<br>
+<br>
 
 ## Visuals
 The figures/ folder contains:
