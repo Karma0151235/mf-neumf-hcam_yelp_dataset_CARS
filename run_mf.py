@@ -12,7 +12,7 @@ from utils.evaluate import evaluate_model
 from utils.splitter import random_split_3way, split_time
 from utils.visualize import plot_train_vs_test
 
-warnings.filterwarnings('ignore')  # Suppress all warnings
+warnings.filterwarnings('ignore')  
 warnings.warn("This warning will be hidden")
 print("This Script Ignores All Warnings")
 
@@ -70,7 +70,7 @@ def train_mf(train_df, val_df, num_users, num_items, latent_dim=8, epochs=7, bat
         val_mae = mean_absolute_error(val_targets, val_preds)
         val_maes.append(val_mae)
 
-        # Also compute train metrics
+        # compute train metrics
         train_preds, train_targets = [], []
         with torch.no_grad():
             for u, i, r in train_loader:
