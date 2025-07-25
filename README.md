@@ -48,7 +48,7 @@ This repository contains the full implementation of a recommendation system benc
 ### 3. Data Preparation
    a. Download the [Yelp dataset files](https://www.kaggle.com/datasets/yelp-dataset/yelp-dataset) (business.json, review.json, etc.) into the datasets/ directory. <br>
 
-   b. Important: Ensure that _all_ scripts reference the dataset path.
+   b. Important: Ensure that _all_ scripts reference the dataset path. 
 <br>
 <br>
 
@@ -61,6 +61,7 @@ This repository contains the full implementation of a recommendation system benc
 <br>
 
 ### 5. Train and Evaluate Models
+   Cloned repository consists of data, context, and tuned model files; If cloned properly, you can directly run the command below after installing dependencies. 
    ```bash
    python run_final_compare.py
    ```
