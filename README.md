@@ -58,3 +58,12 @@ This repository contains the full implementation of a recommendation system benc
    ```bash
    python run_final_compare.py
    ```
+
+## Model Summary
+
+| Model          | Description                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **MF**         | Standard matrix factorization using element-wise product of user/item embeddings.                                  |
+| **NeuMF**      | Combines MF and deep MLP components with learnable fusion.                                                         |
+| **HCAM-NeuMF** | Extends NeuMF by incorporating structured context vectors derived from hierarchical clustering of latent features. |
+
