@@ -67,3 +67,14 @@ This repository contains the full implementation of a recommendation system benc
 | **NeuMF**      | Combines MF and deep MLP components with learnable fusion.                                                         |
 | **HCAM-NeuMF** | Extends NeuMF by incorporating structured context vectors derived from hierarchical clustering of latent features. |
 
+## Evaluation Metrics
+
+- RMSE (Root Mean Squared Error)
+   
+- MAE (Mean Absolute Error)
+   
+- Evaluation is done using:
+   
+   - 10-fold Cross-Validation
+
+   - Time-based splitting (chronological 80/20 split)
