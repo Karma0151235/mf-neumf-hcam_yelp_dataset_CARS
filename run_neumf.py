@@ -20,7 +20,7 @@ def train_neumf(train_df, val_df, num_users, num_items, latent_dim_mf=16, latent
     print("Using device:", device)
 
     model = NeuMF(num_users, num_items, latent_dim_mf, latent_dim_mlp, mlp_layers, dropout).to(device)
-    model.device = device  # Ensure model.device is set
+    model.device = device 
 
     train_loader = DataLoader(TensorDataset(
         torch.tensor(train_df['user'].values, dtype=torch.long),
