@@ -22,7 +22,7 @@ if __name__ == '__main__':
     path_json_dir = 'datasets/'
     raw_df = load_yelp(path_json_dir, sample_size=500000)
     df, _ = preprocess(raw_df, min_uc=3, min_ic=3)
-    context_matrix = np.load("data/context_latents.npy")
+    context_matrix = np.load("data/structured_context.npy")
 
     # === Time-Based Evaluation ===
     print("\n[1] Time-Based Evaluation")
