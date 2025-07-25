@@ -1,6 +1,11 @@
-# Context-Aware Recommendation with HCAM-NeuMF
+# Neural Network-Based Context-Aware Collaborative Filtering Recommendation Systems in Social Media
 
 This repository contains an adapted implementation of a recommendation system benchmark study, based on the paper [*Context-Aware Recommendations Based on Deep Learning Frameworks*](https://doi.org/10.1145/3386243). The project compares three models—**Matrix Factorization (MF)**, **Neural Matrix Factorization (NeuMF)**, and a **Hierarchical Context-Aware NeuMF (HCAM-NeuMF)**—on the Yelp dataset using both random and time-based splits.
+
+## Credits:
+Student Name: Stephen Tee Wei Xin
+Student ID: 21074638
+Supervisor: Ms. Lim Woan Ning
 
 ---
 
