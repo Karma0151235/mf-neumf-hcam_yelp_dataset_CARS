@@ -1,4 +1,3 @@
-# --- train_autoencoder.py ---
 
 import torch
 import pandas as pd
