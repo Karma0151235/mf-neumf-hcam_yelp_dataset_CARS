@@ -26,3 +26,12 @@ This repository contains the full implementation of a recommendation system benc
 ├── optimize_neumf.py           # Bayesian optimization for NeuMF
 ├── optimize_hcamneumf.py       # Bayesian optimization for HCAM-NeuMF
 └── README.md
+
+
+## Setup 
+
+1. **Clone the repository**
+   ```
+   git clone https://github.com/Karma0151235/mf-neumf-hcam_yelp_dataset_CARS.git
+   cd mf-neumf-hcam_yelp_dataset_CARS
+   ```
