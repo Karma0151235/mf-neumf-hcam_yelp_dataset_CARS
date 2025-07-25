@@ -10,7 +10,7 @@ from utils.evaluate import evaluate_model
 from utils.visualize import (
     plot_fold_losses, plot_train_vs_test,
     plot_model_comparison_losses, plot_model_comparison_metrics,
-    plot_val_vs_test_metrics, plot_train_vs_val_mae  # Include new function
+    plot_val_vs_test_metrics, plot_train_vs_val_mae
 )
 from utils.autoencoder import Autoencoder
 from models.hcamneumf import HCAMNeuMF
@@ -19,9 +19,10 @@ from run_neumf import run_neumf
 from run_hcamneumf import run_hcamneumf
 
 if __name__ == '__main__':
-    path_json_dir = 'datasets/'
-    raw_df = load_yelp(path_json_dir, sample_size=500000)
-    df, _ = preprocess(raw_df, min_uc=3, min_ic=3)
+    #path_json_dir = 'datasets/'
+    #raw_df = load_yelp(path_json_dir, sample_size=500000)
+    #df, _ = preprocess(raw_df, min_uc=3, min_ic=3)
+    df = pd.read_parquet("data/yelp_filtered.parquet")
     context_matrix = np.load("data/structured_context.npy")
 
     # === Time-Based Evaluation ===
