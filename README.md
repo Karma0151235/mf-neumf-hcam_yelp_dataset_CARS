@@ -28,24 +28,29 @@ This repository contains the full implementation of a recommendation system benc
 ├── optimize_hcamneumf.py       # Bayesian optimization for HCAM-NeuMF
 └── README.md
 ```
+<br>
 
 ## Setup 
+<br>
 
 ### 1. Clone the Repository
    ```bash
    git clone https://github.com/Karma0151235/mf-neumf-hcam_yelp_dataset_CARS.git
    cd mf-neumf-hcam_yelp_dataset_CARS
    ```
+<br>
 
 ### 2. Install Dependencies
    ```bash
    pip install -r requirements.txt
    ```
+<br>
 
 ### 3. Data Preparation
    
    a. Download the [Yelp dataset files](https://www.kaggle.com/datasets/yelp-dataset/yelp-dataset) (business.json, review.json, etc.) into the datasets/ directory. <br>
    b. Important: Ensure that _all_ scripts reference the dataset path.
+<br>
 
 ### 4. Generate Context Vectors
    ```bash
@@ -53,11 +58,13 @@ This repository contains the full implementation of a recommendation system benc
    python encode_context.py
    python generate_structured_context.py
    ```
+<br>
 
 # 5. Train and Evaluate Models
    ```bash
    python run_final_compare.py
    ```
+<br>
 
 ## Model Summary
 
@@ -66,6 +73,7 @@ This repository contains the full implementation of a recommendation system benc
 | **MF**         | Standard matrix factorization using element-wise product of user/item embeddings.                                  |
 | **NeuMF**      | Combines MF and deep MLP components with learnable fusion.                                                         |
 | **HCAM-NeuMF** | Extends NeuMF by incorporating structured context vectors derived from hierarchical clustering of latent features. |
+<br>
 
 ## Evaluation Metrics
 
@@ -78,3 +86,23 @@ This repository contains the full implementation of a recommendation system benc
    - 10-fold Cross-Validation
 
    - Time-based splitting (chronological 80/20 split)
+<br>
+
+## Hyperparameter Tuning
+
+Bayesian Optimization using `scikit-optimize` was used to fine-tune hyperparameters (latent dimensions, learning rate, dropout). <br>
+Due to time and compute constraints, not all hyperparameters (e.g. number of layers, batch size) were included in the search space. Some models were also manually tuned for practical performance.
+<br>
+
+## Visuals
+The figures/ folder contains:
+
+- Context latent distribution histogram
+- Context latent space (PCA 3D scatter)
+- AHC dendrogram of context clusters
+- Train vs Validation loss/MAE curves
+- Model architecture diagrams (torchviz)
+- Yelp subset EDA visuals
+<br>
+
+
