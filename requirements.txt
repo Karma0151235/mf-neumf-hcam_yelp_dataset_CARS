@@ -1,0 +1,17 @@
+# Core packages
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.5.1
+scipy==1.13.1
+
+# Deep learning
+torch==2.7.0
+
+# Optimization
+scikit-optimize==0.10.2
+
+# Visualization
+matplotlib==3.9.2
+torchviz==0.0.3
+graphviz==0.21
+
