@@ -31,30 +31,30 @@ This repository contains the full implementation of a recommendation system benc
 
 ## Setup 
 
-1. **Clone the Repository**
+# 1. Clone the Repository
    ```bash
    git clone https://github.com/Karma0151235/mf-neumf-hcam_yelp_dataset_CARS.git
    cd mf-neumf-hcam_yelp_dataset_CARS
    ```
 
-2. **Install Dependencies**
+# 2. Install Dependencies
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Data Preparation**
+# 3. Data Preparation
    
    a. Download the [Yelp dataset files](https://www.kaggle.com/datasets/yelp-dataset/yelp-dataset) (business.json, review.json, etc.) into the datasets/ directory. <br>
-   b. Important: Ensure that all scripts reference the dataset path.
+   b. Important: Ensure that _all_ scripts reference the dataset path.
 
-4. **Generate Context Vectors**
+# 4. Generate Context Vectors
    ```bash
    python train_autoencoder.py
    python encode_context.py
    python generate_structured_context.py
    ```
 
-5. **Train and Evaluate Models**
+# 5. Train and Evaluate Models
    ```bash
    python run_final_compare.py
    ```
