@@ -1,6 +1,6 @@
 # Context-Aware Recommendation with HCAM-NeuMF
 
-This repository contains the full implementation of a recommendation system benchmark study, based on the paper [*Context-Aware Recommendations Based on Deep Learning Frameworks*](https://doi.org/10.1145/3386243). The project compares three models—**Matrix Factorization (MF)**, **Neural Matrix Factorization (NeuMF)**, and a **Hierarchical Context-Aware NeuMF (HCAM-NeuMF)**—on the Yelp dataset using both random and time-based splits.
+This repository contains an adapted implementation of a recommendation system benchmark study, based on the paper [*Context-Aware Recommendations Based on Deep Learning Frameworks*](https://doi.org/10.1145/3386243). The project compares three models—**Matrix Factorization (MF)**, **Neural Matrix Factorization (NeuMF)**, and a **Hierarchical Context-Aware NeuMF (HCAM-NeuMF)**—on the Yelp dataset using both random and time-based splits.
 
 ---
 
