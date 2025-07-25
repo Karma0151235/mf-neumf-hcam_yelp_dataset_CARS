@@ -13,7 +13,6 @@ def encode_context(parquet_path="data/yelp_filtered.parquet", encoder_path="mode
     context_matrix = df[context_columns].values.astype(np.float32)
     x = torch.tensor(context_matrix, dtype=torch.float32).to(device)
 
-    # Load encoder as nn.Sequential
     encoder = torch.nn.Sequential(
         torch.nn.Linear(x.shape[1], 3),
         torch.nn.ReLU()
