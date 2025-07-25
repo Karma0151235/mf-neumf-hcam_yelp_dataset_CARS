@@ -22,6 +22,7 @@ This repository contains the full implementation of a recommendation system benc
 ├── run_mf.py                     # Trains & evaluates Matrix Factorization model
 ├── run_neumf.py                  # Trains & evaluates NeuMF model
 ├── run_hcamneumf.py              # Trains & evaluates HCAM-NeuMF
+├── run_final_compare.py          # Centralized script, use for final run
 ├── optimize_mf.py               # Bayesian optimization for MF
 ├── optimize_neumf.py           # Bayesian optimization for NeuMF
 ├── optimize_hcamneumf.py       # Bayesian optimization for HCAM-NeuMF
@@ -51,4 +52,9 @@ This repository contains the full implementation of a recommendation system benc
    python train_autoencoder.py
    python encode_context.py
    python generate_structured_context.py
+   ```
+
+5. **Train and Evaluate Models**
+   ```bash
+   python run_final_compare.py
    ```
