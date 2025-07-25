@@ -30,8 +30,18 @@ This repository contains the full implementation of a recommendation system benc
 
 ## Setup 
 
-1. **Clone the repository**
+1. **Clone the Repository**
    ```
    git clone https://github.com/Karma0151235/mf-neumf-hcam_yelp_dataset_CARS.git
    cd mf-neumf-hcam_yelp_dataset_CARS
    ```
+
+2. **Install Dependencies**
+   ```
+   pip install -r requirements.txt
+   ```
+
+3. **Data Preparation**
+   <ul>Download the [Yelp dataset files](https://www.kaggle.com/datasets/yelp-dataset/yelp-dataset) (business.json, review.json, etc.) into the datasets/ directory. </ul>
+   <ul>⚠️ Important: Ensure that all scripts reference the dataset path. </ul>
+   
