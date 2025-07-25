@@ -1,4 +1,4 @@
-# --- generate_structured_context.py (scalable version) ---
+
 
 import numpy as np
 import pandas as pd
